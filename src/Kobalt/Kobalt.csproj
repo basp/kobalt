@@ -11,4 +11,10 @@
     <PackageReference Include="Mscribel.FixedWidth" Version="2.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Setl">
+      <HintPath>..\..\..\setl\src\Setl\bin\Debug\net9.0\Setl.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

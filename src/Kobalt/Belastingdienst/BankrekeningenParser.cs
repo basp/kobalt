@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Mscribel.FixedWidth;
+using Setl;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 
@@ -19,7 +20,7 @@ public class BankrekeningenParser
     // ReSharper disable once MemberCanBePrivate.Global
     protected readonly ILogger logger;
 
-    protected BankrekeningenParser(ILogger logger)
+    public BankrekeningenParser(ILogger logger)
     {
         this.logger = logger;
     }
@@ -41,58 +42,17 @@ public class BankrekeningenParser
         new(BankrekeningenParser.IsSluitrecordPattern, RegexOptions.Compiled);
 #pragma warning restore SYSLIB1045
     
-    private static readonly TextSerializer<Voorlooprecord> voorlooprecordSerializer =
-        new();
-
-    private static readonly TextSerializer<AlgemeenRecord> algemeenRecordSerializer =
-        new();
-
-    private static readonly TextSerializer<Waarderecord1> waardeRecord1Serializer =
-        new();
-
-    private static readonly TextSerializer<Waarderecord2> waardeRecord2Serializer =
-        new();
-
-    private static readonly TextSerializer<Waarderecord3> waardeRecord3Serializer =
-        new();
-
-    private static readonly TextSerializer<Waarderecord4> waardeRecord4Serializer =
-        new();
-
-    private static readonly TextSerializer<Sluitrecord> sluitrecordSerializer =
-        new();
+    private static readonly TextSerializer<Voorlooprecord> voorlooprecordSerializer = new();
+    private static readonly TextSerializer<AlgemeenRecord> algemeenRecordSerializer = new();
+    private static readonly TextSerializer<Waarderecord1> waardeRecord1Serializer = new();
+    private static readonly TextSerializer<Waarderecord2> waardeRecord2Serializer = new();
+    private static readonly TextSerializer<Waarderecord3> waardeRecord3Serializer = new();
+    private static readonly TextSerializer<Waarderecord4> waardeRecord4Serializer = new();
+    private static readonly TextSerializer<Sluitrecord> sluitrecordSerializer = new();
     
-    protected virtual void OnVoorlooprecord(Voorlooprecord record)
+    public IEnumerable<Row> Parse(Stream stream)
     {
-    }
-
-    protected virtual void OnAlgemeenRecord(AlgemeenRecord record)
-    {
-    }
-
-    protected virtual void OnWaarderecord1(Waarderecord1 record)
-    {
-    }
-
-    protected virtual void OnWaarderecord2(Waarderecord2 record)
-    {
-    }
-
-    protected virtual void OnWaarderecord3(Waarderecord3 record)
-    {
-    }
-
-    protected virtual void OnWaarderecord4(Waarderecord4 record)
-    {
-    }
-
-    protected virtual void OnSluitrecord(Sluitrecord record)
-    {
-    }
-
-    public void Parse(Stream stream)
-    {
-        var parsers = this.GetParsers();
+        var parsers = this.GetParsers2();
         using var reader = new StreamReader(stream);
         while (!reader.EndOfStream)
         {
@@ -108,14 +68,56 @@ public class BankrekeningenParser
                 // ReSharper disable once InvertIf
                 if (parser.Key.IsMatch(line))
                 {
-                    parser.Value(line);
-                    break;
+                    var record = parser.Value.ParserFunc(line);
+                    var row = Row.FromObject(record);
+                    this.logger.LogTrace("Parsed {Tag}", parser.Value.Tag);
+                    yield return row;
                 }
             }
         }
     }
 
-    private Dictionary<Regex, Action<string>> GetParsers() => new()
+    private Dictionary<Regex, Parser> GetParsers2() => new()
+    {
+        [BankrekeningenParser.isVoorlooprecordRegex] = new Parser(
+            nameof(Voorlooprecord),
+            line => 
+                BankrekeningenParser
+                    .voorlooprecordSerializer
+                    .Deserialize(line)),
+        [BankrekeningenParser.isAlgemeenRecordRegex] = new Parser(
+            nameof(AlgemeenRecord),
+            line =>
+                BankrekeningenParser
+                    .algemeenRecordSerializer
+                    .Deserialize(line)),
+        [BankrekeningenParser.isWaarderecord1Regex] = new Parser(
+            nameof(Waarderecord1),
+            line =>
+                BankrekeningenParser
+                    .waardeRecord1Serializer
+                    .Deserialize(line)),
+        [BankrekeningenParser.isWaarderecord2Regex] = new Parser(
+            nameof(Waarderecord2),
+            line =>
+                BankrekeningenParser
+                    .waardeRecord2Serializer
+                    .Deserialize(line)),
+        [BankrekeningenParser.isWaarderecord3Regex] = new Parser(
+            nameof(Waarderecord3),
+            line =>
+                BankrekeningenParser
+                    .waardeRecord3Serializer
+                    .Deserialize(line)),
+        [BankrekeningenParser.isWaarderecord4Regex] = new Parser(
+            nameof(Waarderecord4),
+            line =>
+                BankrekeningenParser
+                    .waardeRecord4Serializer
+                    .Deserialize(line)),
+    };
+
+    private Dictionary<Regex, Func<string, object>> GetParsers() => new()
     {
         [BankrekeningenParser.isVoorlooprecordRegex] = line =>
         {
@@ -126,7 +128,7 @@ public class BankrekeningenParser
             this.logger.LogTrace(
                 "OnVoorlooprecord: {IndicatiefInzender}", 
                 record.IndicatiefInzender);
-            this.OnVoorlooprecord(record);
+            return record;
         },
         [BankrekeningenParser.isAlgemeenRecordRegex] = line =>
         {
@@ -135,7 +137,7 @@ public class BankrekeningenParser
                     .algemeenRecordSerializer
                     .Deserialize(line);
             this.logger.LogTrace("OnAlgemeenRecord: {BSN}", record.BSN);
-            this.OnAlgemeenRecord(record);
+            return record;
         },
         [BankrekeningenParser.isWaarderecord1Regex] = line =>
         {
@@ -144,7 +146,7 @@ public class BankrekeningenParser
                     .waardeRecord1Serializer
                     .Deserialize(line);
             this.logger.LogTrace("OnWaarderecord1: {waarde}", record.Waarde);
-            this.OnWaarderecord1(record);
+            return record;
         },
         [BankrekeningenParser.isWaarderecord2Regex] = line =>
         {
@@ -153,7 +155,7 @@ public class BankrekeningenParser
                     .waardeRecord2Serializer
                     .Deserialize(line);
             this.logger.LogTrace("OnWaarderecord2: {waarde}", record.Waarde);
-            this.OnWaarderecord2(record);
+            return record;
         },
         [BankrekeningenParser.isWaarderecord3Regex] = line =>
         {
@@ -162,7 +164,7 @@ public class BankrekeningenParser
                     .waardeRecord3Serializer
                     .Deserialize(line);
             this.logger.LogTrace("OnWaarderecord3: {waarde}", record.Waarde);
-            this.OnWaarderecord3(record);
+            return record;
         },
         [BankrekeningenParser.isWaarderecord4Regex] = line =>
         {
@@ -171,7 +173,7 @@ public class BankrekeningenParser
                     .waardeRecord4Serializer
                     .Deserialize(line);
             this.logger.LogTrace("OnWaardeRecord4: {waarde}", record.Waarde);
-            this.OnWaarderecord4(record);
+            return record;
         },
         [BankrekeningenParser.isSluitrecordRegex] = line =>
         {
@@ -182,7 +184,7 @@ public class BankrekeningenParser
             this.logger.LogTrace(
                 "OnSluitrecord: {AantalRecords}", 
                 record.AantalRecords);
-            this.OnSluitrecord(record);
+            return record;
         },
     };
 
@@ -315,4 +317,6 @@ public class BankrekeningenParser
 
         [TextField(15, 9)] public int AantalRecords { get; set; }
     }
+
+    private record Parser(string Tag, Func<string, object> ParserFunc);
 }
