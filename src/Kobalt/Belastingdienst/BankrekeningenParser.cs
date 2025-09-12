@@ -16,7 +16,7 @@ public class BankrekeningenParser
     private const string IsWaarderecord3Pattern = "^.{12}20.{9}NAAM REKENINGHOUDER";
     private const string IsWaarderecord4Pattern = "^.{12}20.{9}RENTE- EN SALDOBEDRAG";
     private const string IsSluitrecordPattern = "^.{12}99";
-    
+
     // ReSharper disable once MemberCanBePrivate.Global
     protected readonly ILogger logger;
 
@@ -26,22 +26,28 @@ public class BankrekeningenParser
     }
 
 #pragma warning disable SYSLIB1045
-    private static readonly Regex isVoorlooprecordRegex = 
+    private static readonly Regex isVoorlooprecordRegex =
         new(BankrekeningenParser.IsVoorloopPattern, RegexOptions.Compiled);
-    private static readonly Regex isAlgemeenRecordRegex = 
+
+    private static readonly Regex isAlgemeenRecordRegex =
         new(BankrekeningenParser.IsAlgemeenRecordPattern, RegexOptions.Compiled);
-    private static readonly Regex isWaarderecord1Regex = 
+
+    private static readonly Regex isWaarderecord1Regex =
         new(BankrekeningenParser.IsWaarderecord1Pattern, RegexOptions.Compiled);
-    private static readonly Regex isWaarderecord2Regex = 
+
+    private static readonly Regex isWaarderecord2Regex =
         new(BankrekeningenParser.IsWaarderecord2Pattern, RegexOptions.Compiled);
-    private static readonly Regex isWaarderecord3Regex = 
+
+    private static readonly Regex isWaarderecord3Regex =
         new(BankrekeningenParser.IsWaarderecord3Pattern, RegexOptions.Compiled);
-    private static readonly Regex isWaarderecord4Regex = 
+
+    private static readonly Regex isWaarderecord4Regex =
         new(BankrekeningenParser.IsWaarderecord4Pattern, RegexOptions.Compiled);
-    private static readonly Regex isSluitrecordRegex = 
+
+    private static readonly Regex isSluitrecordRegex =
         new(BankrekeningenParser.IsSluitrecordPattern, RegexOptions.Compiled);
 #pragma warning restore SYSLIB1045
-    
+
     private static readonly TextSerializer<Voorlooprecord> voorlooprecordSerializer = new();
     private static readonly TextSerializer<AlgemeenRecord> algemeenRecordSerializer = new();
     private static readonly TextSerializer<Waarderecord1> waardeRecord1Serializer = new();
@@ -49,10 +55,10 @@ public class BankrekeningenParser
     private static readonly TextSerializer<Waarderecord3> waardeRecord3Serializer = new();
     private static readonly TextSerializer<Waarderecord4> waardeRecord4Serializer = new();
     private static readonly TextSerializer<Sluitrecord> sluitrecordSerializer = new();
-    
+
     public IEnumerable<Row> Parse(Stream stream)
     {
-        var parsers = this.GetParsers2();
+        var config = BankrekeningenParser.GetParserConfig();
         using var reader = new StreamReader(stream);
         while (!reader.EndOfStream)
         {
@@ -63,129 +69,72 @@ public class BankrekeningenParser
             }
 
             // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
-            foreach (var parser in parsers)
+            foreach (var parser in config)
             {
                 // ReSharper disable once InvertIf
                 if (parser.Key.IsMatch(line))
                 {
                     var record = parser.Value.ParserFunc(line);
                     var row = Row.FromObject(record);
-                    this.logger.LogTrace("Parsed {Tag}", parser.Value.Tag);
+                    var tag = parser.Value.Tag;
+                    row["Tag"] = tag;
+                    this.logger.LogTrace("Parsed {tag}", tag);
                     yield return row;
                 }
             }
         }
     }
 
-    private Dictionary<Regex, Parser> GetParsers2() => new()
+    private static Dictionary<Regex, Parser> GetParserConfig() => new()
     {
         [BankrekeningenParser.isVoorlooprecordRegex] = new Parser(
             nameof(Voorlooprecord),
-            line => 
+            regel =>
                 BankrekeningenParser
                     .voorlooprecordSerializer
-                    .Deserialize(line)),
+                    .Deserialize(regel)),
+        
         [BankrekeningenParser.isAlgemeenRecordRegex] = new Parser(
             nameof(AlgemeenRecord),
-            line =>
+            regel =>
                 BankrekeningenParser
                     .algemeenRecordSerializer
-                    .Deserialize(line)),
+                    .Deserialize(regel)),
+        
         [BankrekeningenParser.isWaarderecord1Regex] = new Parser(
             nameof(Waarderecord1),
-            line =>
+            regel =>
                 BankrekeningenParser
                     .waardeRecord1Serializer
-                    .Deserialize(line)),
+                    .Deserialize(regel)),
+        
         [BankrekeningenParser.isWaarderecord2Regex] = new Parser(
             nameof(Waarderecord2),
-            line =>
+            regel =>
                 BankrekeningenParser
                     .waardeRecord2Serializer
-                    .Deserialize(line)),
+                    .Deserialize(regel)),
+        
         [BankrekeningenParser.isWaarderecord3Regex] = new Parser(
             nameof(Waarderecord3),
-            line =>
+            regel =>
                 BankrekeningenParser
                     .waardeRecord3Serializer
-                    .Deserialize(line)),
+                    .Deserialize(regel)),
+        
         [BankrekeningenParser.isWaarderecord4Regex] = new Parser(
             nameof(Waarderecord4),
-            line =>
+            regel =>
                 BankrekeningenParser
                     .waardeRecord4Serializer
-                    .Deserialize(line)),
-    };
+                    .Deserialize(regel)),
 
-    private Dictionary<Regex, Func<string, object>> GetParsers() => new()
-    {
-        [BankrekeningenParser.isVoorlooprecordRegex] = line =>
-        {
-            var record =
-                BankrekeningenParser
-                    .voorlooprecordSerializer
-                    .Deserialize(line);
-            this.logger.LogTrace(
-                "OnVoorlooprecord: {IndicatiefInzender}", 
-                record.IndicatiefInzender);
-            return record;
-        },
-        [BankrekeningenParser.isAlgemeenRecordRegex] = line =>
-        {
-            var record =
-                BankrekeningenParser
-                    .algemeenRecordSerializer
-                    .Deserialize(line);
-            this.logger.LogTrace("OnAlgemeenRecord: {BSN}", record.BSN);
-            return record;
-        },
-        [BankrekeningenParser.isWaarderecord1Regex] = line =>
-        {
-            var record =
-                BankrekeningenParser
-                    .waardeRecord1Serializer
-                    .Deserialize(line);
-            this.logger.LogTrace("OnWaarderecord1: {waarde}", record.Waarde);
-            return record;
-        },
-        [BankrekeningenParser.isWaarderecord2Regex] = line =>
-        {
-            var record =
-                BankrekeningenParser
-                    .waardeRecord2Serializer
-                    .Deserialize(line);
-            this.logger.LogTrace("OnWaarderecord2: {waarde}", record.Waarde);
-            return record;
-        },
-        [BankrekeningenParser.isWaarderecord3Regex] = line =>
-        {
-            var record =
-                BankrekeningenParser
-                    .waardeRecord3Serializer
-                    .Deserialize(line);
-            this.logger.LogTrace("OnWaarderecord3: {waarde}", record.Waarde);
-            return record;
-        },
-        [BankrekeningenParser.isWaarderecord4Regex] = line =>
-        {
-            var record =
-                BankrekeningenParser
-                    .waardeRecord4Serializer
-                    .Deserialize(line);
-            this.logger.LogTrace("OnWaardeRecord4: {waarde}", record.Waarde);
-            return record;
-        },
-        [BankrekeningenParser.isSluitrecordRegex] = line =>
-        {
-            var record =
+        [BankrekeningenParser.isSluitrecordRegex] = new Parser(
+            nameof(Sluitrecord),
+            regel =>
                 BankrekeningenParser
                     .sluitrecordSerializer
-                    .Deserialize(line);
-            this.logger.LogTrace(
-                "OnSluitrecord: {AantalRecords}", 
-                record.AantalRecords);
-            return record;
-        },
+                    .Deserialize(regel)),
     };
 
     [TextSerializable]
