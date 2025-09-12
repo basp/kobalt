@@ -9,12 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
     <PackageReference Include="Mscribel.FixedWidth" Version="2.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Setl">
-      <HintPath>..\..\..\setl\src\Setl\bin\Debug\net9.0\Setl.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Setl" Version="0.1.0" />
   </ItemGroup>
 
 </Project>

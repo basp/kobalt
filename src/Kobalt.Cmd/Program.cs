@@ -1,6 +1,7 @@
 ﻿using Kobalt.Belastingdienst;
 using Microsoft.Extensions.Logging;
 using Setl;
+using Setl.Pipelines;
 
 var logger = LoggerFactory.Create(builder =>
     {
