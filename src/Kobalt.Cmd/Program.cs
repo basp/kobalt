@@ -14,16 +14,41 @@ var logger = LoggerFactory.Create(builder =>
     })
     .CreateLogger<Program>();
 
-const string path = @"D:\temp\BD\INL_VINLBUR010_goed_20240516.txt";
+AlleenverdienersExample(logger);
 
-var executor = new SingleThreadedPipelineExecutor(logger);
-var stream = File.OpenRead(path);
-var process = new SimpleProcess(
-    init =>
+return;
+
+static void AlleenverdienersExample(ILogger logger)
+{
+    const string path = @"D:\temp\BD\avd_corrupt.csv";
+    
+    var parser = new AlleenverdienersParser(logger);
+    var stream = File.OpenRead(path);
+    var records = parser.Parse(stream);
+    foreach (var record in records)
     {
-        init.Register(new ExtractBankrekeningenOperation(stream, logger));
-    }, 
-    logger, 
-    executor);
+        // If we try to log with logger here we get some strange behavior.
+        // Looks like the stream is cut off early and we don't get all the output.
+        // Outputting with Console.WriteLine works fine.
+        Console.WriteLine($"[BSN {record.BSN}] [Gemeentecode {record.Gemeentecode}]");
+    }   
+}
 
-process.Execute();
+#pragma warning disable CS8321 // Local function is declared but never used
+static void BankrekeningenExample(ILogger logger)
+#pragma warning restore CS8321 // Local function is declared but never used
+{
+    const string path = @"D:\temp\BD\INL_VINLBUR010_goed_20240516.txt";
+
+    var executor = new SingleThreadedPipelineExecutor(logger);
+    var stream = File.OpenRead(path);
+    var process = new SimpleProcess(
+        init =>
+        {
+            init.Register(new ExtractBankrekeningenOperation(stream, logger));
+        }, 
+        logger, 
+        executor);
+
+    process.Execute();    
+}

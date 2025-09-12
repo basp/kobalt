@@ -56,6 +56,9 @@ public class BankrekeningenParser
     private static readonly TextSerializer<Waarderecord4> waardeRecord4Serializer = new();
     private static readonly TextSerializer<Sluitrecord> sluitrecordSerializer = new();
 
+    // We can consider injecting the row-handler logic via the Parse method.
+    // That way this parse method can be made void, and we would be able to 
+    // use a SAX-like model (as originally intended).
     public IEnumerable<Row> Parse(Stream stream)
     {
         var config = BankrekeningenParser.GetParserConfig();
