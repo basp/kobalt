@@ -27,19 +27,19 @@ public class WWB65PlusParser
     {
         parserConfig = new Dictionary<Regex, Parser>
         {
-            [WWB65PlusParser.IsBerichtRegex] = new Parser(
+            [WWB65PlusParser.IsBerichtRegex] = new(
                 nameof(Berichtrecord), 
                 regel => 
                     berichtrecordSerializer.Deserialize(regel)),
-            [WWB65PlusParser.IsGemeenteRegex] = new Parser(
+            [WWB65PlusParser.IsGemeenteRegex] = new(
                 nameof(Gemeenterecord),
                 regel =>
                     gemeenterecordSerializer.Deserialize(regel)),
-            [WWB65PlusParser.IsDetailRegex] = new Parser(
+            [WWB65PlusParser.IsDetailRegex] = new(
                 nameof(Detailrecord),
                 regel =>
                     detailrecordSerializer.Deserialize(regel)),
-            [WWB65PlusParser.IsTellingenRegex] = new Parser(
+            [WWB65PlusParser.IsTellingenRegex] = new(
                 nameof(Tellingenrecord),
                 regel =>
                     tellingenrecordSerializer.Deserialize(regel)),
