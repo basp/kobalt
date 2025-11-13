@@ -1,2 +1,2 @@
-# kobalt
-Parsing utilities.
+# Kobalt
+Dynamic dictionary and parsing utilities.
