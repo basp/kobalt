@@ -236,6 +236,7 @@ public class Row : DynamicDictionary, IEquatable<Row>
     public string ToJson(JsonSerializerOptions? options = null) =>
         JsonSerializer.Serialize(this, options);
 
+    // Experimental
     public JsonNode? ToJsonNode() => JsonNode.Parse(this.ToJson());
     
     private static List<PropertyInfo> GetProperties(object obj)

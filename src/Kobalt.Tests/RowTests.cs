@@ -250,6 +250,56 @@ public class RowTests
         Assert.Equal(key1, key2);
         Assert.NotEqual(key1, key3);
     }
+
+    [Fact]
+    public void RowAsSimpleObjectMapper()
+    {
+        var a1 = new RecordA
+        {
+            Id = 1,
+            Name = "foo",
+        };
+        
+        var a2 = new RecordA
+        {
+            Id = 2,
+            Name = "bar",
+        };
+
+        // Create row from existing object.
+        var r1 = Row.FromObject(a1);
+        var r2 = Row.FromObject(a2);
+
+        // Append row with additional values.
+        r1["Value"] = 0.15;
+        r2["Value"] = 0.33;
+        
+        // Map row to new object.
+        var b1 = r1.ToObject<RecordB>();
+        var b2 = r2.ToObject<RecordB>();
+        
+        Assert.Equal(a1.Id, b1.Id);
+        Assert.Equal(a2.Id, b2.Id);
+        
+        Assert.Equal(a1.Name, b1.Name);
+        Assert.Equal(a2.Name, b2.Name);
+        
+        Assert.Equal(0.15, b1.Value);
+        Assert.Equal(0.33, b2.Value);
+    }
+
+    private record RecordA
+    {
+        public int Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+    }
+
+    private record RecordB
+    {
+        public int Id { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public double Value { get; init; }
+    }
     
     private class Foo
     {
